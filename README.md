@@ -59,12 +59,14 @@ Packing & Store as the camera gets there.
 
 ## Run it
 
-Open `index.html`. That is the whole thing.
+**Live: [thtpk.github.io/SugarFactory](https://thtpk.github.io/SugarFactory/)**
 
-To publish it, push this repository and turn on GitHub Pages (Settings → Pages → Source: GitHub Actions). The
-[workflow](.github/workflows/pages.yml) serves the committed page as-is; there is nothing to compile in CI.
+Or open [`index.html`](index.html) from a clone. That is the whole thing — one file, no server, no network.
 
 While it is open: `space` pauses, `←`/`→` seek two seconds, `r` restarts, `f` goes fullscreen.
+
+It is published straight from this branch (Settings → Pages → Source: *Deploy from a branch*, `main` / `(root)`).
+`index.html` is committed, so there is no build step in CI and nothing to go stale between a push and the live page.
 
 ## Build it
 

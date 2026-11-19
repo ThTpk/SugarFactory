@@ -101,6 +101,12 @@ if (!fs.existsSync(built)) {
   console.error(`the skill's bundler produced nothing at ${built}`);
   process.exit(1);
 }
-fs.copyFileSync(built, path.join(ROOT, 'index.html'));
-const kb = (fs.statSync(built).size / 1024).toFixed(0);
+// The bundler titles the page after its entry folder, which would put "sugar-film" in the browser tab of a page
+// people open from a link. Give it the mill's own name on the way out.
+const TITLE = 'Caneline — Suphan Mill';
+const out = path.join(ROOT, 'index.html');
+const html = fs.readFileSync(built, 'utf8').replace(`<title>${entry}</title>`, `<title>${TITLE}</title>`);
+if (!html.includes(`<title>${TITLE}</title>`)) console.warn(`could not set the title: no <title>${entry}</title> in the build`);
+fs.writeFileSync(out, html);
+const kb = (fs.statSync(out).size / 1024).toFixed(0);
 console.log(`index.html  ${kb} KB  — open it in a browser, or push and serve it with GitHub Pages`);
