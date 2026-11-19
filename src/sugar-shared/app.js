@@ -24,6 +24,7 @@ const FOV = 28;
 const MIN_D = 34;
 const MAX_D = 620;
 const MIN_EL = 16;
+const PAN_SLOP = 6; // pixels of wobble that still count as a click rather than the start of a pan
 const MAX_EL = 72;
 // the whole mill in one shot: what the home button and the opening frame give you
 const HOME = {x: 60, z: -4, d: 440, az: 42, el: 34};
@@ -140,8 +141,25 @@ export async function runToySugarApp() {
   };
 
   // ---------------------------------------------------------------- camera input
-  // metres per CSS pixel at the current distance, so a drag keeps the ground under the pointer
-  const perPx = () => (2 * cam.d * Math.tan((FOV * Math.PI) / 360)) / 900;
+  /**
+   * Where the pointer meets the ground. Panning by a flat metres-per-pixel estimate is never right: the ground is
+   * seen at 34 degrees, so a vertical drag is foreshortened, and perspective makes the near half of the screen cover
+   * fewer metres than the far half. Dragging down and dragging up then move the map by different amounts and it
+   * slides under your hand. Unprojecting onto y = 0 and keeping the grabbed point under the cursor is exact at any
+   * angle and any zoom, and it costs one ray.
+   */
+  const GROUND = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  const groundHit = new THREE.Vector3();
+  const groundAt = (clientX, clientY) => {
+    const r = canvas.getBoundingClientRect();
+    if (!r.width || !r.height) return null;
+    ndc.set(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
+    ray.setFromCamera(ndc, st.camera);
+    if (!ray.ray.intersectPlane(GROUND, groundHit)) return null; // looking at or above the horizon
+    // a near-grazing ray lands kilometres away and would fling the map across the site
+    if (Math.abs(groundHit.x - cam.x) > 4000 || Math.abs(groundHit.z - cam.z) > 4000) return null;
+    return {x: groundHit.x, z: groundHit.z};
+  };
   const pointers = new Map();
   let drag = null;
   let pinch = 0;
@@ -157,7 +175,15 @@ export async function runToySugarApp() {
       drag = null;
       return;
     }
-    drag = {x: e.clientX, y: e.clientY, moved: 0, rotate: e.button === 2 || e.shiftKey, x0: e.clientX, y0: e.clientY};
+    drag = {
+      far: 0, // the furthest the pointer has been from where it went down
+      panning: false,
+      rotate: e.button === 2 || e.shiftKey,
+      x0: e.clientX,
+      y0: e.clientY,
+      cur: {x: e.clientX, y: e.clientY},
+      grab: null,
+    };
   });
   canvas.addEventListener('pointermove', (e) => {
     const p = pointers.get(e.pointerId);
@@ -174,19 +200,25 @@ export async function runToySugarApp() {
       return;
     }
     if (!drag) return;
-    drag.moved += Math.abs(dx) + Math.abs(dy);
-    // the window is scaled to fit, so a CSS pixel on screen is not a pixel of the 1600 x 900 stage
-    const k = 1600 / canvas.getBoundingClientRect().width;
+    drag.cur.x = e.clientX;
+    drag.cur.y = e.clientY;
+    drag.far = Math.max(drag.far, Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0));
+    // Nobody holds a mouse still while clicking, and a trackpad is worse, so a few pixels of wobble must still be a
+    // click, and the camera must not creep while they wobble. Panning therefore only starts once the pointer has
+    // genuinely left the press — but it grabs the ground under the PRESS, not under the pointer now, so that from
+    // then on the drag tracks exactly rather than permanently lagging by however far the first move event jumped.
+    if (!drag.rotate && !drag.panning && drag.far > PAN_SLOP) {
+      drag.panning = true;
+      drag.grab = groundAt(drag.x0, drag.y0);
+    }
     if (drag.rotate) {
+      // the window is scaled to fit, so a CSS pixel on screen is not a pixel of the 1600 x 900 stage
+      const k = 1600 / canvas.getBoundingClientRect().width;
       cam.az = (cam.az - dx * k * 0.25) % 360;
       cam.el = clamp(cam.el + dy * k * 0.12, MIN_EL, MAX_EL);
-      return;
     }
-    const m = perPx() * k;
-    const a = cam.az * D2R;
-    // screen right and screen up, projected on the ground; the map follows the pointer, so the target moves against it
-    cam.x += -dx * m * Math.cos(a) + dy * m * Math.sin(a);
-    cam.z += -dx * m * -Math.sin(a) + dy * m * Math.cos(a);
+    // a pan is applied once a frame, in draw(), against the camera actually on screen — several move events between
+    // two frames would otherwise each correct against a stale camera and overshoot
   });
   const endPointer = (e) => {
     const was = drag;
@@ -197,7 +229,7 @@ export async function runToySugarApp() {
       return;
     }
     drag = null;
-    if (was.moved > 6 || was.rotate) return;
+    if (was.rotate || was.panning) return;
     select(pickAt(was.x0, was.y0));
   };
   canvas.addEventListener('pointerup', endPointer);
@@ -361,6 +393,15 @@ export async function runToySugarApp() {
     sel.route(rf ? rf(t) : null, selKind ? Math.max(0.2, clamp((t - selT0) / 0.9)) : 0, 1);
     sel.update();
 
+    // hold the grabbed ground point under the pointer: one correction a frame, against the camera on screen
+    if (drag && drag.panning && drag.grab) {
+      const now = groundAt(drag.cur.x, drag.cur.y);
+      if (now) {
+        cam.x += drag.grab.x - now.x;
+        cam.z += drag.grab.z - now.z;
+      }
+    }
+
     rt.beforeFrame();
     st.frame({tx: cam.x, ty: 2.5, tz: cam.z, az: cam.az * D2R, el: cam.el * D2R, d: cam.d, fov: FOV, sx: -110, sy: 26});
 
@@ -396,7 +437,7 @@ export async function runToySugarApp() {
     requestAnimationFrame(draw);
   };
 
-  window.TOYSUGAR = {st, W, cam, pickAt, seek: (v) => (t = clamp(v / DUR) * DUR)};
+  window.TOYSUGAR = {st, W, cam, pickAt, groundAt, seek: (v) => (t = clamp(v / DUR) * DUR)};
   window.SIM = {ready: true, duration: DUR, render: (v) => (t = v)};
   requestAnimationFrame(draw);
 }
