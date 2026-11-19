@@ -1,0 +1,12 @@
+{
+  "name": "caneline",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A toy sugar mill you can watch run itself: one offline HTML page where one cane load is followed from the weighbridge to a bagged pallet.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "collide": "node scripts/build.mjs --collide"
+  }
+}

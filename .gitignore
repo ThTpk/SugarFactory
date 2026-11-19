@@ -1,0 +1,5 @@
+node_modules/
+simulator-out/
+warehouse-film.html
+.DS_Store
+*.log
