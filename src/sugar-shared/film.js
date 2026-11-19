@@ -78,7 +78,7 @@ export const filmSelection = (t) => {
 };
 
 export function runToySugarFilm() {
-  return runSim({duration: DUR, fps: 60, theme: 'light', hud: {enabled: false, title: 'Caneline', subtitle: '— Suphan Mill'}, director: {enabled: false}, watermark: ''}, async ({canvas, capture}) => {
+  return runSim({duration: DUR, fps: 60, theme: 'light', hud: {enabled: false, title: 'Caneline', subtitle: '— the film'}, director: {enabled: false}, watermark: ''}, async ({canvas, capture}) => {
     const app = document.getElementById('app');
     const M = createMill({app, canvas, capture});
     const {st, W, ui, sel, proj, panels} = M;
