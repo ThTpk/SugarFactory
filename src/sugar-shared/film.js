@@ -95,7 +95,7 @@ const DROP = [
 ];
 
 export function runToySugarFilm() {
-  return runSim({duration: DUR, fps: 60, theme: 'light', hud: {enabled: false, title: 'caneline', subtitle: ''}, director: {enabled: false}, watermark: ''}, async ({canvas, capture}) => {
+  return runSim({duration: DUR, fps: 60, theme: 'light', hud: {enabled: false, title: 'Caneline', subtitle: '— Suphan Mill'}, director: {enabled: false}, watermark: ''}, async ({canvas, capture}) => {
     const app = document.getElementById('app');
     const st = createToyStage(canvas, {fov: 28});
     const W = buildWorld();
