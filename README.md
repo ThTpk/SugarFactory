@@ -1,6 +1,6 @@
 <h1 align="center">Caneline</h1>
 
-<p align="center"><b>A sugar mill you can watch run itself.</b><br>
+<p align="center"><b>A sugar mill you can drive.</b><br>
 One offline HTML page. Every machine, every number and every frame is code.</p>
 
 <p align="center"><img src="docs/overview.png" alt="The whole mill: cane yard, tipping table, carrier, mill house, boiler, packing and the sugar store" width="100%"></p>
@@ -46,8 +46,8 @@ Packing & Store as the camera gets there.
 
 | | |
 |---|---|
-| **One camera** | Azimuth 42°, elevation 34°, for the whole film. It pans and zooms. No cuts. |
-| **`render(t)` is pure** | Any second renders the same frame in any order. No physics, no timers, no state between frames. |
+| **One camera** | Azimuth 42°, elevation 34°. In the film it only pans and zooms, and never cuts; on the page you take it over. |
+| **`render(t)` is pure** | Any second renders the same frame in any order. No physics, no timers, no state between frames — which is what lets you scrub the day backwards and get the same mill. |
 | **Toy scale** | A cane truck nearly as tall as the hopper. Big simple shapes, generous bevels, nothing sharp. |
 | **Two colours** | Blue and white on a lavender ground. Yellow only on the working machines — the mill rollers, the tipping table, the carrier slats, the cane cage. Green only on cane. |
 | **Nothing above y = 12** | At 34° a tall column hides the work behind it. The one exception is the boiler stack, at the back where it blocks nothing. |
@@ -63,10 +63,27 @@ Packing & Store as the camera gets there.
 
 Or open [`index.html`](index.html) from a clone. That is the whole thing — one file, no server, no network.
 
-While it is open: `space` pauses, `←`/`→` seek two seconds, `r` restarts, `f` goes fullscreen.
+It opens playing the tour above, so you can see the mill working without being told what to look at. The moment you
+touch it, the tour hands over and does not take control back:
 
-It is published straight from this branch (Settings → Pages → Source: *Deploy from a branch*, `main` / `(root)`).
-`index.html` is committed, so there is no build step in CI and nothing to go stale between a push and the live page.
+| | |
+|---|---|
+| **drag** | pan over the map |
+| **scroll** or **pinch** | zoom |
+| **right-drag** | swing the camera round |
+| **click a machine** | select it — its card, its outline, and its route drawn on the ground |
+| **click the map** | deselect, back to the area card |
+| **the switcher, top right** | jump to the Cane Yard, Mill House, Process House or Packing |
+| **the tool column** | zoom, rotate, and home to the whole mill |
+| **the fleet table** | click a row to select what it names |
+| **the scrubber** | scrub the crushing day; `space` plays and pauses |
+| `←` `→` `r` `f` `Esc` | seek two seconds, restart, fullscreen, deselect |
+
+[`film.html`](film.html) is the same mill cut as a fixed 44.6 s film — one camera, scripted clicks, no controls.
+That is the page the video is recorded from. Both are built from the same world, so neither can drift from the other.
+
+The site is published straight from this branch (Settings → Pages → Source: *Deploy from a branch*, `main` / `(root)`).
+The pages are committed, so there is no build step in CI and nothing to go stale between a push and the live site.
 
 ## Build it
 
@@ -102,14 +119,17 @@ npm run collide
 
 | | |
 |---|---|
-| `index.html` | The built page. Self-contained, offline, ~1 MB. This is the deliverable. |
+| `index.html` | The built page you can drive. Self-contained, offline, ~1 MB. This is the deliverable. |
+| `film.html` | The same mill as a fixed 44.6 s film, for recording. |
+| `src/sugar-shared/mill.js` | Everything the two pages share: the stage, the world, the product UI, the selection marks, the thumbnails, and every panel's contents as a function of the clock. |
+| `src/sugar-shared/app.js` | The interactive page: camera control, picking by raycast, the live panels and the scrubber. |
 | `src/sugar-shared/palette.js` | The mill's colours on top of the kit's, and the shared helpers: lathed vessels, pipe runs, walkways, plumes. |
 | `src/sugar-shared/wet.js` | The wet end: cane carrier, receiving hopper, shredder, four-mill tandem, juice tanks, clarifier, five evaporator bodies, pipe racks. |
 | `src/sugar-shared/dry.js` | The dry end: vacuum pans, crystallisers, six centrifugals, rotary dryer, silos, bagging line, sugar bags and pallets, boiler house. |
 | `src/sugar-shared/yard.js` | The yard: cane trucks and trailers, the tipping table, the weighbridge, cane and bagasse piles, the pedestal grab, gate, office, tank farm. |
 | `src/sugar-shared/world.js` | The map and the whole crushing day as `pose(t)` — every path, every machine's state, the numbers the UI reads. |
-| `src/sugar-shared/film.js` | The camera keys, the eleven clicks, the area switcher and every panel of the Caneline UI. |
-| `src/sugar-film/` | The film's entry point and its timeline. `src/sugar-collide/`: the collision sweep. |
+| `src/sugar-shared/film.js` | The film's timeline: the camera keys, the ten clicks and the drawn cursor. |
+| `src/sugar-app/`, `src/sugar-film/` | The two pages' entry points. `src/sugar-collide/`: the collision sweep. |
 | `docs/BRIEF.md` | The brief the three model kits were built from, including the scale contract every height in the mill meets. |
 
 ## Credits

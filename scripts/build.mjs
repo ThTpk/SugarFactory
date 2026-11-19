@@ -61,9 +61,15 @@ for (const dir of fs.readdirSync(path.join(ROOT, 'src'))) {
 }
 console.log(`kit: ${SKILL}`);
 
-const entry = COLLIDE ? 'sugar-collide' : 'sugar-film';
+// index.html is the page you can drive; film.html is the same mill cut as a 44.6 s film, which is what the video
+// is recorded from. They share every model, the world and the panels, so neither can drift from the other.
+const PAGES = [
+  {entry: 'sugar-app', out: 'index.html', title: 'Caneline — Suphan Mill'},
+  {entry: 'sugar-film', out: 'film.html', title: 'Caneline — the film'},
+];
+const entry = COLLIDE ? 'sugar-collide' : null;
 const run = (args) => execFileSync(process.execPath, args, {cwd: SKILL, stdio: 'inherit'});
-run([path.join('sims', 'build.mjs'), entry]);
+run([path.join('sims', 'build.mjs'), ...(entry ? [entry] : PAGES.map((p) => p.entry))]);
 
 if (COLLIDE) {
   // The sweep runs inside the page and reports on the console, so drive it with the skill's own Chromium and print
@@ -96,17 +102,18 @@ if (COLLIDE) {
   process.exit(0);
 }
 
-const built = path.join(SKILL, 'simulator-out', 'dist', `${entry}.html`);
-if (!fs.existsSync(built)) {
-  console.error(`the skill's bundler produced nothing at ${built}`);
-  process.exit(1);
+for (const page of PAGES) {
+  const built = path.join(SKILL, 'simulator-out', 'dist', `${page.entry}.html`);
+  if (!fs.existsSync(built)) {
+    console.error(`the skill's bundler produced nothing at ${built}`);
+    process.exit(1);
+  }
+  // The bundler titles a page after its entry folder, which would put "sugar-app" in the browser tab of a page
+  // people open from a link. Give it the mill's own name on the way out.
+  const html = fs.readFileSync(built, 'utf8').replace(`<title>${page.entry}</title>`, `<title>${page.title}</title>`);
+  if (!html.includes(`<title>${page.title}</title>`)) console.warn(`could not set the title: no <title>${page.entry}</title> in the build`);
+  const out = path.join(ROOT, page.out);
+  fs.writeFileSync(out, html);
+  console.log(`${page.out.padEnd(11)} ${(fs.statSync(out).size / 1024).toFixed(0)} KB`);
 }
-// The bundler titles the page after its entry folder, which would put "sugar-film" in the browser tab of a page
-// people open from a link. Give it the mill's own name on the way out.
-const TITLE = 'Caneline — Suphan Mill';
-const out = path.join(ROOT, 'index.html');
-const html = fs.readFileSync(built, 'utf8').replace(`<title>${entry}</title>`, `<title>${TITLE}</title>`);
-if (!html.includes(`<title>${TITLE}</title>`)) console.warn(`could not set the title: no <title>${entry}</title> in the build`);
-fs.writeFileSync(out, html);
-const kb = (fs.statSync(out).size / 1024).toFixed(0);
-console.log(`index.html  ${kb} KB  — open it in a browser, or push and serve it with GitHub Pages`);
+console.log('open index.html in a browser, or push and serve it with GitHub Pages');
